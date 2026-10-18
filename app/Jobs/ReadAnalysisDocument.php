@@ -19,6 +19,10 @@ class ReadAnalysisDocument implements ShouldQueue
 {
     use Queueable;
 
+    public int $timeout = 180;
+
+    public int $tries = 2;
+
     public function __construct(public int $documentId) {}
 
     public function handle(PdfTextExtractor $extractor, AnalysisRedactor $redactor): void
@@ -110,6 +114,25 @@ class ReadAnalysisDocument implements ShouldQueue
     private function audioFailure(): string
     {
         return 'No se pudo transcribir el audio. Hace falta configurar el proveedor de transcripción.';
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        Log::warning('analysis document job failed', [
+            'document_id' => $this->documentId,
+            'error' => $exception === null ? null : $exception::class,
+        ]);
+
+        $document = AnalysisDocument::query()->find($this->documentId);
+        if ($document === null || $document->status !== AnalysisDocumentStatus::Pending)
+        {
+            return;
+        }
+
+        $this->markFailed(
+            $document,
+            $this->isAudio($document) ? $this->audioFailure() : 'No se pudo leer el PDF.',
+        );
     }
 
     private function markFailed(AnalysisDocument $document, string $reason): void

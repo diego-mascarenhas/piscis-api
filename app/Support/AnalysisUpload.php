@@ -9,7 +9,7 @@ class AnalysisUpload
     /**
      * @var list<string>
      */
-    public const AUDIO_EXTENSIONS = ['mp3', 'mpeg', 'mpga', 'm4a', 'wav', 'webm', 'ogg', 'aac', 'mp4'];
+    public const AUDIO_EXTENSIONS = ['mp3', 'mpeg', 'mpga', 'm4a', 'wav', 'webm', 'ogg', 'opus', 'aac', 'mp4'];
 
     public static function kind(string $contents, UploadedFile $file): ?string
     {
