@@ -50,10 +50,11 @@ class AnalysisCaseController extends Controller
         $uploaded = $request->file('documents', []);
         /** @var list<UploadedFile> $files */
         $files = array_values(is_array($uploaded) ? $uploaded : [$uploaded]);
-        $this->cases->storeDocuments($case, $files);
+        $stored = $this->cases->storeDocuments($case, $files);
 
         return response()->json([
             'case' => $this->cases->present($case->refresh()),
+            'unchanged' => $stored['unchanged'],
         ], 201);
     }
 }

@@ -43,13 +43,23 @@ class AnalysisCaseService
 
     /**
      * @param  list<UploadedFile>  $files
-     * @return list<AnalysisDocument>
+     * @return array{documents: list<AnalysisDocument>, unchanged: list<string>}
      */
     public function storeDocuments(AnalysisCase $case, array $files): array
     {
         $max = (int) config('piscis.max_documents');
-        $existing = $case->documents()->count();
-        if ($existing + count($files) > $max)
+        $known = $case->documents()->pluck('sha256')->all();
+        $newCount = 0;
+        foreach ($files as $file)
+        {
+            $hash = hash('sha256', $file->getContent());
+            if (! in_array($hash, $known, true))
+            {
+                $newCount++;
+                $known[] = $hash;
+            }
+        }
+        if ($case->documents()->count() + $newCount > $max)
         {
             throw ValidationException::withMessages([
                 'documents' => "Este caso admite hasta {$max} archivos.",
@@ -57,12 +67,21 @@ class AnalysisCaseService
         }
 
         $stored = [];
+        $unchanged = [];
         foreach ($files as $file)
         {
-            $stored[] = $this->storeOne($case, $file);
+            $result = $this->storeOne($case, $file);
+            $stored[] = $result['document'];
+            if ($result['unchanged'])
+            {
+                $unchanged[] = $result['document']->original_name;
+            }
         }
 
-        return $stored;
+        return [
+            'documents' => $stored,
+            'unchanged' => $unchanged,
+        ];
     }
 
     /**
@@ -131,9 +150,11 @@ class AnalysisCaseService
                     'failure_reason' => null,
                 ]);
                 ReadAnalysisDocument::dispatch($existing->id);
+
+                return ['document' => $existing->refresh(), 'unchanged' => false];
             }
 
-            return $existing->refresh();
+            return ['document' => $existing, 'unchanged' => true];
         }
 
         $path = $case->id.'/'.$hash.'.'.AnalysisUpload::extension($file, $kind);
@@ -155,6 +176,6 @@ class AnalysisCaseService
 
         ReadAnalysisDocument::dispatch($document->id);
 
-        return $document->refresh();
+        return ['document' => $document->refresh(), 'unchanged' => false];
     }
 }
