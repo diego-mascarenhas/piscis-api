@@ -101,6 +101,9 @@ class AnalysisCaseService
             'redactionNotes' => $document->redaction_notes ?? [],
             'extractedText' => $document->extracted_text,
             'detail' => $document->failure_reason,
+            'processedAt' => $document->status === AnalysisDocumentStatus::Pending
+                ? null
+                : $document->updated_at?->toIso8601String(),
         ];
     }
 
