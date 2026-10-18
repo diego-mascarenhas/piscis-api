@@ -72,7 +72,9 @@ class AnalysisCaseService
     {
         $case->load(['documents' => function ($query)
         {
-            $query->orderBy('id');
+            $query->orderByRaw("case when status = 'pending' then 1 else 0 end")
+                ->orderBy('updated_at')
+                ->orderBy('id');
         }]);
 
         $payload = [
