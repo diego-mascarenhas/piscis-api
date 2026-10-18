@@ -57,4 +57,22 @@ class AnalysisCaseController extends Controller
             'unchanged' => $stored['unchanged'],
         ], 201);
     }
+
+    public function reprocess(string $token): JsonResponse
+    {
+        $case = $this->cases->findByToken($token);
+        if ($case === null)
+        {
+            return response()->json([
+                'message' => 'No hay un caso con ese token.',
+            ], 404);
+        }
+
+        $count = $this->cases->reprocessIncomplete($case);
+
+        return response()->json([
+            'case' => $this->cases->present($case->refresh()),
+            'reprocessed' => $count,
+        ]);
+    }
 }

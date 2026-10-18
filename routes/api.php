@@ -14,4 +14,5 @@ Route::prefix('cases')->middleware('throttle:30,1')->group(function ()
     Route::post('/', [AnalysisCaseController::class, 'store']);
     Route::get('{token}', [AnalysisCaseController::class, 'show'])->where('token', '[a-f0-9]{64}');
     Route::post('{token}/documents', [AnalysisCaseController::class, 'storeDocuments'])->where('token', '[a-f0-9]{64}');
+    Route::post('{token}/reprocess', [AnalysisCaseController::class, 'reprocess'])->where('token', '[a-f0-9]{64}');
 });

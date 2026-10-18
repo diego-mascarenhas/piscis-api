@@ -128,7 +128,10 @@ class AnalysisCaseService
         ];
     }
 
-    private function storeOne(AnalysisCase $case, UploadedFile $file): AnalysisDocument
+    /**
+     * @return array{document: AnalysisDocument, unchanged: bool}
+     */
+    private function storeOne(AnalysisCase $case, UploadedFile $file): array
     {
         $contents = $file->getContent();
         $kind = AnalysisUpload::kind($contents, $file);
@@ -177,5 +180,26 @@ class AnalysisCaseService
         ReadAnalysisDocument::dispatch($document->id);
 
         return ['document' => $document->refresh(), 'unchanged' => false];
+    }
+
+    public function reprocessIncomplete(AnalysisCase $case): int
+    {
+        $documents = $case->documents()
+            ->whereIn('status', [
+                AnalysisDocumentStatus::Failed->value,
+                AnalysisDocumentStatus::Empty->value,
+            ])
+            ->get();
+
+        foreach ($documents as $document)
+        {
+            $document->update([
+                'status' => AnalysisDocumentStatus::Pending,
+                'failure_reason' => null,
+            ]);
+            ReadAnalysisDocument::dispatch($document->id);
+        }
+
+        return $documents->count();
     }
 }
